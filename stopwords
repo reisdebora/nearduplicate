@@ -1,0 +1,30 @@
+Stopwords
+
+The list of stopwords contains the nomenclature pattern defined by the Ministry to name tables and columns of relational databases.
+These patterns repeat constantly and does not add information to the learning model.
+For this reason, they were removed at pre-processing and transformation step.
+
+List of stopwords of tables:
+tb_ 
+vw_
+
+List of stopwords of columns:
+co_
+cd_
+dt_
+hr_
+dh_
+ds_
+ge_
+no_
+nu_
+rf_
+sg_
+st_
+tp_
+qt_
+vl_
+pc_
+sk_
+id_
+nr_
