@@ -1,0 +1,589 @@
+---
+title: "ClassificacaoTabelasSimilares"
+author: "Debora Reis"
+date: "09/07/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Carrega os dados
+library(readr)
+tabela = read.csv2("tabela.csv", sep = ";")               # 11.617.872 obs
+treino = read.csv2("treino_tabela.csv", sep = ";")        #  6.971.045 obs
+validacao = read.csv2("validacao_tabela.csv", sep = ";")  #  2.322.823 obs
+teste = read.csv2("teste_tabela.csv", sep = ";")          #  2.324.004 obs
+
+# Descobre as variaveis mais importantes
+library(randomForest)
+fit = randomForest(formula = as.factor(decisao) ~ ., 
+                    data = tabela, ntree = 10)
+varImpPlot(fit)
+```
+
+# Data Mining Tradicional - com 1 core
+
+```{r, warning=FALSE, message=FALSE}
+# DATA MINING - PROCESSAMENTO TRADICIONAL
+# 1. GLM
+# 2. Random Forest - RF
+# 3. GBM
+# 4. Deep Learning
+# 5. Naive Bayes model
+library(MASS)
+library(mlbench)
+library(caret)
+
+###############################
+# GLM 
+# Inicia o contador do tempo de execução
+start.time <- Sys.time()
+
+# Logistic Regression - GLM - Usando 10 folds cross validation e repetindo 3 vezes
+set.seed(10)
+glm_fit <- train(as.factor(decisao) ~ ., data = treino, method="glm", 
+                  trControl=trainControl(method="repeatedcv", number=10, repeats=3),
+                  family = binomial("logit"), maxit = 100)
+
+# Predictions
+pred_glm_fit <- predict(glm_fit, newdata=teste)
+cf_glm_fit = as.matrix(confusionMatrix(pred_glm_fit, teste$decisao))
+
+# Precisao tp/(tp+fp)
+precisao_glm_fit = cf_glm_fit[1,1]/sum(cf_glm_fit[1,1:2])
+precisao_glm_fit
+
+# Recall: tp/(tp + fn)
+recall_glm_fit = cf_glm_fit[1,1]/sum(cf_glm_fit[1:2,1])
+recall_glm_fit
+
+# F-Score: 2 * precision * recall /(precision + recall)
+fmeasure_glm_fit = 2 * precisao_glm_fit * recall_glm_fit / (precisao_glm_fit + recall_glm_fit)
+fmeasure_glm_fit
+
+# Conta o tempo de execução - GLM
+end.time <- Sys.time()
+time.taken_glm_trad <- end.time - start.time
+time.taken_glm_trad
+
+#########################
+# RANDOM FOREST 
+library(randomForest)
+
+# Inicia o contador do tempo de execução
+start.time <- Sys.time()
+
+# Random Forest - com cross validation - Usando 10 folds cross validation e repetindo 3 vezes
+set.seed(10)
+rf_fit <- train(as.factor(decisao) ~ ., data = treino,  method="rf",  
+                 trControl=trainControl(method="repeatedcv", number=10, repeats=3))
+varImpPlot(rf_fit) 
+
+# Predictions
+pred_rf_fit <- predict(rf_fit, newdata=teste)
+cf_rf_fit = as.matrix(confusionMatrix(pred_rf_fit, teste$decisao))
+
+# Precisao tp/(tp+fp)
+precisao_rf_fit = cf_rf_fit[1,1]/sum(cf_rf_fit[1,1:2])
+precisao_rf_fit
+
+# Recall: tp/(tp + fn)
+recall_rf_fit = cf_rf_fit[1,1]/sum(cf_rf_fit[1:2,1])
+recall_rf_fit
+
+# F-Score: 2 * precision * recall /(precision + recall)
+fmeasure_rf_fit= 2 * precisao_rf_fit * recall_rf_fit / (precisao_rf_fit + recall_rf_fit)
+fmeasure_rf_fit
+
+# Conta o tempo de execução - RF
+end.time <- Sys.time()
+time.taken_rf_trad <- end.time - start.time
+time.taken_rf_trad
+
+
+##########################
+# GBM - gradient boost machines: 
+library(gbm)
+
+# Inicia o contador do tempo de execução
+start.time <- Sys.time()
+
+# GBM - com cross validation - Usando 10 folds cross validation e repetindo 3 vezes
+set.seed(10)
+gbm_fit <- train(as.factor(decisao) ~ ., data = treino,  method="gbm",  
+                 trControl=trainControl(method="repeatedcv", number=10, repeats=3),
+                 verbose = FALSE)
+
+# Predictions
+pred_gbm_fit <- predict(gbm_fit, newdata=teste, n.trees = 10)
+cf_gbm_fit = as.matrix(confusionMatrix(pred_gbm_fit, teste$decisao))
+
+# Precisao tp/(tp+fp)
+precisao_gbm_fit = cf_gbm_fit[1,1]/sum(cf_gbm_fit[1,1:2])
+precisao_gbm_fit
+
+# Recall tp/(tp + fn)
+recall_gbm_fit = cf_gbm_fit[1,1]/sum(cf_gbm_fit[1:2,1])
+recall_gbm_fit
+
+# F-Score: 2 * precision * recall /(precision + recall)
+fmeasure_gbm_fit = 2 * precisao_gbm_fit * recall_gbm_fit / (precisao_gbm_fit + recall_gbm_fit)
+fmeasure_gbm_fit
+
+# Conta o tempo de execução - GBM
+end.time <- Sys.time()
+time.taken_gbm_trad <- end.time - start.time
+time.taken_gbm_trad
+
+#############################
+# Deep Learning - Neural Network
+library(nnet)
+
+# Inicia o contador do tempo de execução
+start.time <- Sys.time()
+
+# Deep Learning - com cross validation
+set.seed(10)
+dl_fit<- train(as.factor(decisao) ~ ., data = treino,  method="knn", 
+                 trControl=trainControl(method="repeatedcv", number=10, repeats=3))
+
+# Predictions
+pred_dl_fit <- predict(dl_fit, newdata=teste)
+cf_dl_fit = as.matrix(confusionMatrix(pred_dl_fit, teste$decisao))
+
+# Precisao tp/(tp+fp)
+precisao_dl_fit = cf_dl_fit[1,1]/sum(cf_dl_fit[1,1:2])
+precisao_dl_fit
+
+# Recall: tp/(tp + fn)
+recall_dl_fit = cf_dl_fit[1,1]/sum(cf_dl_fit[1:2,1])
+recall_dl_fit
+
+# F-Score: 2 * precision * recall /(precision + recall):
+fmeasure_dl_fit = 2 * precisao_dl_fit * recall_dl_fit / (precisao_dl_fit + recall_dl_fit)
+fmeasure_dl_fit
+
+# Conta o tempo de execução - DL
+end.time <- Sys.time()
+time.taken_dl_trad <- end.time - start.time
+time.taken_dl_trad
+
+#############################
+# Naive Bayes model
+library(e1071)
+
+# Inicia o contador do tempo de execução
+start.time <- Sys.time()
+
+# Naive Bayes - com cross validation
+set.seed(10)
+nb_fit <- train(as.factor(decisao) ~ ., data = treino,  method="nb", 
+                 trControl=trainControl(method="repeatedcv", number=10, repeats=3))
+
+# Predictions
+pred_nb_fit <- predict(nb_fit, newdata=teste)
+cf_nb_fit = as.matrix(confusionMatrix(pred_nb_fit, teste$decisao))
+
+# Precisao tp/(tp+fp)
+precisao_nb_fit = cf_nb_fit[1,1]/sum(cf_nb_fit[1,1:2])
+precisao_nb_fit
+
+# Recall: tp/(tp + fn)
+recall_nb_fit = cf_nb_fit[1,1]/sum(cf_nb_fit[1:2,1])
+recall_nb_fit
+
+# F-Score: 2 * precision * recall /(precision + recall)
+fmeasure_nb_fit = 2 * precisao_nb_fit * recall_nb_fit / (precisao_nb_fit + recall_nb_fit)
+fmeasure_nb_fit
+
+############################
+# Conta o tempo de execução - NB
+end.time <- Sys.time()
+time.taken_nb_trad <- end.time - start.time
+time.taken_nb_trad
+```
+
+## Mineração de Dados - Processamento Paralelo
+
+```{r, warning=FALSE, message=FALSE}
+# Inicia o contador do tempo de execução
+start.time <- Sys.time()
+
+# Identifica quantos cores, define para 3 cores e imprime a qtd de cores alocados
+library(doParallel)
+library(doMC)
+detectCores()
+nr_cores <- 3
+registerDoMC(nr_cores)
+getDoParWorkers()
+
+# Inicia o H2O
+library(h2o)
+h2o.init(max_mem_size = "8G")
+
+# Carregar dados locais no H2O
+pathToData <- h2o:::.h2o.locate("treino_tabela.csv")
+treino <- h2o.importFile(pathToData,  header = T)
+
+pathToData <- h2o:::.h2o.locate("validacao_tabela.csv")
+validacao <- h2o.importFile(pathToData,  header = T)
+
+pathToData <- h2o:::.h2o.locate("teste_tabela.csv")
+teste <- h2o.importFile(pathToData,  header = T)
+
+nrow(treino)  
+nrow(validacao)
+nrow(teste)
+
+teste$classe <- as.factor(teste$decisao)
+validacao$classe <- as.factor(validacao$decisao)
+treino$classe <- as.factor(treino$decisao)  
+h2o.levels(treino$classe)
+
+# Conta o tempo de execução - Pre-processamento
+end.time <- Sys.time()
+time.taken <- end.time - start.time
+time.taken
+
+################
+# GLM
+# Inicia o contador do tempo de execução
+start.time <- Sys.time()
+
+glm_fit1 <- h2o.glm(y = "classe", 
+                    training_frame = treino,
+                    model_id = "glm_fit1",
+                    family = "binomial")
+
+glm_fit2 <- h2o.glm(y = "classe", 
+                    training_frame = treino,
+                    model_id = "glm_fit2",
+                    validation_frame = validacao,
+                    #nfolds = 10,
+                    family = "binomial",
+                    lambda_search = TRUE)
+
+# compare the performance of the two GLMs.
+glm_perf1 <- h2o.performance(model = glm_fit1, newdata = teste)
+glm_perf2 <- h2o.performance(model = glm_fit2, newdata = teste)
+
+# Print the model performance
+glm_perf1
+glm_perf2
+
+h2o.auc(glm_perf1)  
+h2o.auc(glm_perf2) 
+
+h2o.F1(glm_perf1)
+h2o.F1(glm_perf2)
+
+h2o.precision(glm_perf1)
+h2o.precision(glm_perf2)
+
+h2o.recall(glm_perf1)
+h2o.recall(glm_perf2)
+
+# Compara com a performance do processamento tradicional
+precisao_glm_fit
+recall_glm_fit
+fmeasure_glm_fit
+
+# Compare test AUC to the training AUC and validation AUC.
+h2o.auc(glm_fit2, train = TRUE)  
+glm_fit2@model$validation_metrics 
+
+# Conta o tempo de execução - GLM
+end.time <- Sys.time()
+time.taken_glm_paral <- end.time - start.time
+time.taken_glm_paral
+
+# Compara com o tempo de execução do processamento tradicional
+time.taken_glm_trad
+
+###################
+# Random Forest - RF
+# Inicia o contador do tempo de execução
+start.time <- Sys.time()
+
+rf_fit1 <- h2o.randomForest(y = "classe",
+                            training_frame = treino,
+                            model_id = "rf_fit1",
+                            seed = 1)
+
+rf_fit2 <- h2o.randomForest(y = "classe",
+                            training_frame = treino,
+                            model_id = "rf_fit2",
+                            validation_frame = validacao,
+                            #nfolds = 10,
+                            ntrees = 100,
+                            seed = 1)
+
+# Cross-validate performance - k-fold cross-validation using H2O
+rf_fit3 <- h2o.randomForest(y = "classe",
+                            training_frame = treino,
+                            model_id = "rf_fit3",
+                            seed = 1,
+                            nfolds = 5)
+
+# Compare the performance
+rf_perf1 <- h2o.performance(model = rf_fit1, newdata = teste)
+rf_perf2 <- h2o.performance(model = rf_fit2, newdata = teste)
+rf_perf3 <- h2o.performance(model = rf_fit3, newdata = teste)
+
+# print the performance model
+rf_perf1
+rf_perf2
+rf_perf3
+
+# AUC
+h2o.auc(rf_perf1)  
+h2o.auc(rf_perf2)  
+h2o.auc(rf_fit3, xval = TRUE) 
+
+h2o.F1(rf_perf1)
+h2o.F1(rf_perf2)
+h2o.F1(rf_perf3)
+
+h2o.precision(rf_perf1)
+h2o.precision(rf_perf2)
+h2o.precision(rf_perf3)
+
+h2o.recall(rf_perf1)
+h2o.recall(rf_perf2)
+h2o.recall(rf_perf3)
+
+# Compara com a performance do processamento tradicional
+precisao_rf_fit
+recall_rf_fit
+fmeasure_rf_fit
+
+# Conta o tempo de execução - RF
+end.time <- Sys.time()
+time.taken_rf_paral <- end.time - start.time
+time.taken_rf_paral
+
+# Compara com o tempo de execução do processamento tradicional
+time.taken_rf_trad
+
+###################
+# GBM
+# Inicia o contador do tempo de execução
+start.time <- Sys.time()
+
+gbm_fit1 <- h2o.gbm(y = "classe",
+                    training_frame = treino,
+                    model_id = "gbm_fit1",
+                    seed = 1)
+
+# Increase the number of trees used in the GBM by setting `ntrees=500` (default is 50)
+gbm_fit2 <- h2o.gbm(y = "classe",
+                    training_frame = treino,
+                    model_id = "gbm_fit2",
+                    validation_frame = validacao,
+                    ntrees = 100,   # lembrar de colocar 500 arvores
+                    nfolds = 10,
+                    seed = 1)
+
+# Setting `score_tree_interval = 5` will score the model after every five trees.
+gbm_fit3 <- h2o.gbm(y = "classe",
+                    training_frame = treino,
+                    model_id = "gbm_fit3",
+                    validation_frame = validacao,
+                    ntrees = 100,
+                    nfolds = 10,
+                    score_tree_interval = 5,      #used for early stopping
+                    stopping_rounds = 3,          #used for early stopping
+                    stopping_metric = "AUC",      #used for early stopping
+                    stopping_tolerance = 0.0005,  #used for early stopping
+                    seed = 1)
+
+# Let's compare the performance of the two GBMs.
+gbm_perf1 <- h2o.performance(model = gbm_fit1, newdata = teste)
+gbm_perf2 <- h2o.performance(model = gbm_fit2, newdata = teste)
+gbm_perf3 <- h2o.performance(model = gbm_fit3, newdata = teste)
+
+# Print model performance
+gbm_perf1
+gbm_perf2
+gbm_perf3
+
+# Retreive test set AUC, F1, precision e recall
+h2o.auc(gbm_perf1)  
+h2o.auc(gbm_perf2)  
+h2o.auc(gbm_perf3)  
+
+h2o.F1(gbm_perf1)
+h2o.F1(gbm_perf2)
+h2o.F1(gbm_perf3)
+
+h2o.precision(gbm_perf1)
+h2o.precision(gbm_perf2)
+h2o.precision(gbm_perf3)
+
+h2o.recall(gbm_perf1)
+h2o.recall(gbm_perf2)
+h2o.recall(gbm_perf3)
+
+# Compara com a performance do processamento tradicional
+precisao_gbm_fit
+recall_gbm_fit
+fmeasure_gbm_fit
+
+# examine the scoring history
+h2o.scoreHistory(gbm_fit1)
+h2o.scoreHistory(gbm_fit2)
+h2o.scoreHistory(gbm_fit3)
+
+# Look at scoring history for third GBM model.
+plot(gbm_fit3, 
+     timestep = "number_of_trees", 
+     metric = "AUC")
+plot(gbm_fit3, 
+     timestep = "number_of_trees", 
+     metric = "logloss")
+
+# Conta o tempo de execução - GBM
+end.time <- Sys.time()
+time.taken_gbm_paral <- end.time - start.time
+time.taken_gbm_paral
+
+# Compara com o tempo de execução do processamento tradicional
+time.taken_gbm_trad
+
+###############
+## Deep Learning
+# Inicia o contador do tempo de execução
+start.time <- Sys.time()
+
+#dl_fit1 <- h2o.deeplearning(y = "classe",
+#                            training_frame = treino,
+#                            model_id = "dl_fit1",
+#                            seed = 1)
+
+# Train a DL with new architecture and more epochs.
+dl_fit2 <- h2o.deeplearning(y = "classe",
+                            training_frame = treino,
+                            model_id = "dl_fit2",
+                            validation_frame = validacao,  #only used if stopping_rounds > 0
+                            epochs = 20,
+                            nfolds = 10,
+                            hidden= c(10,10),
+                            stopping_rounds = 0,  # disable early stopping
+                            seed = 1)
+
+### Train a DL with early stopping
+# dl_fit3 <- h2o.deeplearning(y = "classe",
+#                             training_frame = treino,
+#                             model_id = "dl_fit3",
+#                             validation_frame = validacao,  #early stopping is on by default
+#                             epochs = 20,
+#                             nfolds = 10,
+#                             hidden = c(10,10),
+#                             score_interval = 1,           #used for early stopping
+#                             stopping_rounds = 3,          #used for early stopping
+#                             stopping_metric = "AUC",      #used for early stopping
+#                             stopping_tolerance = 0.0005,  #used for early stopping
+#                             seed = 1)
+
+#Let's compare the performance of the three DL models
+#dl_perf1 <- h2o.performance(model = dl_fit1, newdata = teste)
+dl_perf2 <- h2o.performance(model = dl_fit2, newdata = teste)
+#dl_perf3 <- h2o.performance(model = dl_fit3, newdata = teste)
+
+#Print model performance
+#dl_perf1
+dl_perf2
+#dl_perf3
+
+#Retreive test set AUC
+#h2o.auc(dl_perf1)  
+h2o.auc(dl_perf2)  
+#h2o.auc(dl_perf3)  
+
+#h2o.F1(dl_perf1)
+h2o.F1(dl_perf2)
+#h2o.F1(dl_perf3)
+
+#h2o.precision(dl_perf1)
+h2o.precision(dl_perf2)
+#h2o.precision(dl_perf3)
+
+#h2o.recall(dl_perf1)
+h2o.recall(dl_perf2)
+#h2o.recall(dl_perf3)
+
+# Compara com a performance do processamento tradicional
+precisao_dl_fit
+recall_dl_fit
+fmeasure_dl_fit
+
+#Scoring history
+#h2o.scoreHistory(dl_fit3)
+
+#Look at scoring history for third DL model
+#plot(dl_fit3, timestep = "epochs", metric = "AUC")
+
+# Conta o tempo de execução - DL
+end.time <- Sys.time()
+time.taken_dl_paral <- end.time - start.time
+time.taken_dl_paral
+
+# Compara com o tempo de execução do processamento tradicional
+time.taken_dl_trad
+
+#########
+## Naive Bayes model
+# Inicia o contador do tempo de execução
+start.time <- Sys.time()
+
+nb_fit1 <- h2o.naiveBayes(y = "classe",
+                          training_frame = treino,
+                          model_id = "nb_fit1")
+
+### Train a NB model with Laplace Smoothing
+nb_fit2 <- h2o.naiveBayes(y = "classe",
+                          training_frame = treino,
+                          model_id = "nb_fit2",
+                          laplace = 6)
+
+# Let's compare the performance of the two NB models
+nb_perf1 <- h2o.performance(model = nb_fit1, newdata = teste)
+nb_perf2 <- h2o.performance(model = nb_fit2, newdata = teste)
+
+# Print model performance
+nb_perf1
+nb_perf2
+
+# Retreive test set AUC
+h2o.auc(nb_perf1)  
+h2o.auc(nb_perf2)  
+
+h2o.F1(nb_perf1)
+h2o.F1(nb_perf2)
+
+h2o.precision(nb_perf1)
+h2o.precision(nb_perf2)
+
+h2o.recall(nb_perf1)
+h2o.recall(nb_perf2)
+
+# Compara com a performance do processamento tradicional
+precisao_nb_fit
+recall_nb_fit
+fmeasure_nb_fit
+
+# Conta o tempo de execução - NB
+end.time <- Sys.time()
+time.taken_nb_paral <- end.time - start.time
+time.taken_nb_paral
+
+# Compara com o tempo de execução do processamento tradicional
+time.taken_nb_trad
+
+###########
+# Desliga o H2O
+h2o.shutdown(prompt = FALSE)
+```
