@@ -12,16 +12,10 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 # Carrega os dados
 library(readr)
-tabela = read.csv2("tabela.csv", sep = ";")               # 11.617.872 obs
+#tabela = read.csv2("tabela.csv", sep = ";")               # 11.617.872 obs
 treino = read.csv2("treino_tabela.csv", sep = ";")        #  6.971.045 obs
 validacao = read.csv2("validacao_tabela.csv", sep = ";")  #  2.322.823 obs
 teste = read.csv2("teste_tabela.csv", sep = ";")          #  2.324.004 obs
-
-# Descobre as variaveis mais importantes
-library(randomForest)
-fit = randomForest(formula = as.factor(decisao) ~ ., 
-                    data = tabela, ntree = 10)
-varImpPlot(fit)
 ```
 
 # Data Mining Tradicional - com 1 core
