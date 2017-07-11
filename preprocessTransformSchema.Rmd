@@ -1,0 +1,133 @@
+---
+title: "ClassificacaoSchemasSimilares"
+author: "Debora Reis"
+date: "09/07/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, warning=FALSE, message=FALSE}
+# Carrega os dados
+library(readr)
+schemas = read_delim("~/db2_validado_2classes.csv", ";") 
+schemas = as.data.frame(schemas[,2:26])
+schemas = schemas[schemas$ambiente == "producao",]
+
+# Filtra servidor, schema, tabelas, tamGB, qtdlinhas, qtdcolunas, acesso, classe
+schemas = schemas[,c("servidor", "schema", "tabela", "tamanho_GB", "qtd_linhas", "qtd_colunas", "acesso_6_meses", "decisao")]
+
+# Cria coluna com qtd de tabelas
+schemas$qtd_tabelas = sapply(gregexpr("\\S+", schemas$tabela), length)
+
+# Cria coluna com schema + tabelas
+schemas$schematabelas = paste(schemas$schema,schemas$tabela, sep = " ")
+
+# Compara par a par (tabelas x tabelas) e (schema_tabelas x schema_tabelas)
+library(dplyr)
+#a = expand.grid(schemas$id, schemas$id)
+b = expand.grid(schemas$servidor, schemas$servidor)
+c = expand.grid(schemas$schema, schemas$schema)
+d = expand.grid(schemas$tabela, schemas$tabela)
+e = expand.grid(schemas$schematabelas, schemas$schematabelas)
+f = expand.grid(schemas$tamanho_GB, schemas$tamanho_GB)
+g = expand.grid(schemas$qtd_linhas, schemas$qtd_linhas)
+h = expand.grid(schemas$qtd_colunas, schemas$qtd_colunas)
+i = expand.grid(schemas$qtd_tabelas, schemas$qtd_tabelas)
+j = expand.grid(schemas$acesso_6_meses, schemas$acesso_6_meses)
+k = expand.grid(schemas$decisao, schemas$decisao)
+s = bind_cols(b, c, d, e, f, g, h, i, j, k)
+s = s %>% filter(Var1 != Var2) 
+s = as.data.frame(s)
+s = s[!duplicated(apply(s,1,function(x) paste(sort(x),collapse=''))),]
+rm(b, c, d, e, f, g, h, i, j, k)
+
+# Renomeia os nomes das colunas
+colnames(s) = c("servidor2", "servidor1", "schema2", "schema1", "tabelas2", "tabelas1",
+                "schtab2", "schtab1", "size2", "size1", "nrow2", "nrow1", "ncol2",
+                "ncol1", "ntab2", "ntab1", "access2", "access1", "classe2", "classe1")
+
+#reordena as colunas
+s = s[,c("servidor1", "servidor2", "schema1", "schema2", "tabelas1", "tabelas2",
+                "schtab1", "schtab2", "classe1", "classe2", "access1", "access2", 
+                "ntab1", "ntab2", "size1", "size2", "nrow1", "nrow2", 
+                "ncol1","ncol2")]
+
+# Salva
+write.csv2(x = s, file = "s_db2.csv", row.names = TRUE)
+
+# Carrega os dados
+s = read_delim("~/s_db2.csv", ";", escape_double = FALSE, col_types = cols(X1 = col_skip()), trim_ws = TRUE)
+s = as.data.frame(s[,1:20])
+
+# Calcula distancia de tabelas
+library(stringdist)
+s$lv_tab = stringdist(s$tabelas1, s$tabelas2, method = "lv")
+s$cos_tab = stringdist(s$tabelas1, s$tabelas2, method = "cosine")
+s$jac_tab = stringdist(s$tabelas1, s$tabelas2, method = "jaccard")
+
+# Calcula distancia de schemas + tabelas
+s$lv_sch = stringdist(s$schtab1, s$schtab2, method = "lv")
+s$cos_sch = stringdist(s$schtab1, s$schtab2, method = "cosine")
+s$jac_sch = stringdist(s$schtab1, s$schtab2, method = "jaccard")
+
+# Se tiver vazio, coloca 0
+summary(s)
+s$nrow1[is.na(s$nrow1)] = 0
+
+# Faz uma classifcação inicial, sendo 0 para nao similar e 1 para similar
+s$decisao = 0
+s$decisao[s$lv_tab == 0] = 1
+s$decisao[s$lv_sch == 0] = 1
+s$decisao[s$cos_tab <= 0.02] = 1
+s$decisao[s$cos_sch <= 0.02] = 1
+
+# Proporção de similares e nao similares
+table(s$decisao)
+prop.table(table(s$decisao))  
+
+# Cria um id numerico
+#s$id_schema = 1:nrow(s)
+
+# Qtos duplicados? 
+duplicados = s[s$decisao == 1,]
+length(unique(paste(duplicados$sevidor1, duplicados$schema1, sep = " ")))
+length(unique(paste(s$sevidor1, s$schema1, sep = " ")))
+
+# Remove os Duplicados
+#s = s[!duplicated(apply(s,1,function(x) paste(sort(x),collapse=''))),]
+
+# Analisa um schema
+a = s[(s$schema1 == "bvilela") | (s$schema2 == "bvilela"),]
+
+# Faz subset das variaveis numericas
+schema = s[,c(11:14,17:27)]
+
+# Verifica se tem NA
+anyNA(schema)
+
+# Descobre as variaveis mais importantes
+library(randomForest)
+fit = randomForest(formula = as.factor(decisao) ~ ., 
+                    data = schema, ntree = 100)
+varImpPlot(fit)
+
+# Divide em treino, validacao e teste
+set.seed(10)
+amostra = sample(3, nrow(schema), replace = TRUE, prob = c(.6,.2,.2))
+treino = schema[amostra == 1,]
+validacao = schema[amostra == 2,]
+teste = schema[amostra == 3,]
+table(treino$decisao) 
+table(validacao$decisao) 
+table(teste$decisao) 
+
+# Exporta dados processados para arquivo .csv
+write.csv2(x = s, file = "s.csv", row.names = TRUE)
+write.csv2(x = schema, file = "schema.csv", row.names = TRUE)
+write.csv2(x = treino, file = "treino_schema.csv", row.names = TRUE)
+write.csv2(x = validacao, file = "validacao_schema.csv", row.names = TRUE)
+write.csv2(x = teste, file = "teste_schema.csv", row.names = TRUE)
+```
