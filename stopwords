@@ -1,6 +1,6 @@
 Stopwords
 
-The list of stopwords contains the nomenclature pattern defined by the Ministry to name tables and columns of relational databases.
+The list of stopwords contains the nomenclature pattern for name tables and columns of relational databases.
 These patterns repeat constantly and does not add information to the learning model.
 For this reason, they were removed at pre-processing and transformation step.
 
