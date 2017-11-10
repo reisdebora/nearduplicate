@@ -3,6 +3,8 @@ Identify Near Duplicate Schemas among Relational Databases with Parallel Data Mi
 
 ## Contact
 Debora Reis
-debora.g.reis@gmail.com
+
+Email: debora.g.reis@gmail.com
+
 Linkedin: www.linkedin.com/in/debora-reis-003b7b129
 
