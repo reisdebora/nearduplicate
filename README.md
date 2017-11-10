@@ -1,5 +1,8 @@
 # nearduplicate
 Identify Near Duplicate Schemas among Relational Databases with Parallel Data Mining in R.
 
-Near Duplicate Schemas are also called as Similar Schemas.
+## Contact
+Debora Reis
+debora.g.reis@gmail.com
+Linkedin: www.linkedin.com/in/debora-reis-003b7b129
 
