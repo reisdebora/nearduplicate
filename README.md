@@ -6,5 +6,3 @@ Debora Reis
 
 Email: debora.g.reis@gmail.com
 
-Linkedin: www.linkedin.com/in/debora-reis-003b7b129
-
